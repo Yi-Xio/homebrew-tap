@@ -16,19 +16,21 @@ cask "clashx-meta" do
     end
   
     app "ClashX Meta.app"
+
+    # 仅做安装和卸载工具，更新交给软件自己处理
+    auto_updates true
+    conflicts_with cask: "clashx-meta"
   
     uninstall launchctl: "com.metacubex.ClashX.ProxyConfigHelper",
               quit:      "com.metacubex.ClashX",
               delete:    [
                 "/Library/LaunchDaemons/com.metacubex.ClashX.ProxyConfigHelper.plist",
                 "/Library/PrivilegedHelperTools/com.metacubex.ClashX.ProxyConfigHelper",
+                "~/Library/Application Support/com.metacubex.ClashX.meta",
+                "~/Library/Caches/com.metacubex.ClashX.meta",
+                "~/Library/Logs/ClashX Meta",
+                "~/Library/Preferences/com.metacubex.ClashX.meta.plist",
               ]
   
-    zap trash: [
-      "~/Library/Application Support/com.metacubex.ClashX.meta",
-      "~/Library/Caches/com.metacubex.ClashX.meta",
-      "~/Library/Logs/ClashX Meta",
-      "~/Library/Preferences/com.metacubex.ClashX.meta.plist",
-    ]
   end
   
