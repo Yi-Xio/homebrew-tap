@@ -8,9 +8,6 @@ cask "adobe-downloader" do
     name "Adobe Downloader"
     desc "Rule-based custom proxy with GUI based on Clash.Meta"
     homepage "https://github.com/X1a0He/Adobe-Downloader"
-    
-    auto_updates true
-    conflicts_with cask: "adobe-downloader"
   
     livecheck do
       url :url
@@ -18,13 +15,16 @@ cask "adobe-downloader" do
     end
   
     app "Adobe Downloader.app"
-  
+    
+    # brew uninstall adobe-downloader 时并不清理 helper
+    # 使用 brew uninstall --zap adobe-downloader 清理
     uninstall launchctl: "com.x1a0he.macOS.Adobe-Downloader",
-              quit:      "com.x1a0he.macOS.Adobe-Downloader",
-              delete:    [
-                "/Library/LaunchDaemons/com.x1a0he.macOS.Adobe-Downloader.helper.plist",
-                "/Library/PrivilegedHelperTools/com.x1a0he.macOS.Adobe-Downloader.helper",
-              ]
+              quit:      "com.x1a0he.macOS.Adobe-Downloader"
+
+    zap trash: [
+      "/Library/LaunchDaemons/com.x1a0he.macOS.Adobe-Downloader.helper.plist",
+      "/Library/PrivilegedHelperTools/com.x1a0he.macOS.Adobe-Downloader.helper",
+    ]
   
   end
   
