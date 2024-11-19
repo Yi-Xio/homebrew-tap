@@ -15,16 +15,21 @@ cask "adobe-downloader" do
     end
   
     app "Adobe Downloader.app"
-    
-    # brew uninstall adobe-downloader 时并不清理 helper
-    # 使用 brew uninstall --zap adobe-downloader 清理
-    uninstall launchctl: "com.x1a0he.macOS.Adobe-Downloader",
-              quit:      "com.x1a0he.macOS.Adobe-Downloader"
 
-    zap trash: [
-      "/Library/LaunchDaemons/com.x1a0he.macOS.Adobe-Downloader.helper.plist",
-      "/Library/PrivilegedHelperTools/com.x1a0he.macOS.Adobe-Downloader.helper",
-    ]
+    # 仅做安装和卸载工具，更新交给软件自己处理
+    auto_updates true
+    conflicts_with cask: "adobe-downloader"
+    
+    uninstall launchctl: "com.x1a0he.macOS.Adobe-Downloader",
+              quit:      "com.x1a0he.macOS.Adobe-Downloader",
+              script:    {
+                executable: "/bin/sh",
+                args: ["-c", "pkill 'Adobe Downloader'"]
+              },
+              delete: [
+                "/Library/LaunchDaemons/com.x1a0he.macOS.Adobe-Downloader.helper.plist",
+                "/Library/PrivilegedHelperTools/com.x1a0he.macOS.Adobe-Downloader.helper",
+              ]
   
   end
   
