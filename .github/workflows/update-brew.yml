@@ -1,0 +1,108 @@
+name: Update Homebrew Formulas
+
+on:
+  schedule:
+    - cron: '0 20 * * *'  # 每天执行一次 北京时间 4:00
+  workflow_dispatch:     # 手动触发
+
+jobs:
+  update-formulas:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Update Homebrew
+        run: brew update
+
+      - name: Install jq
+        run: brew install jq
+
+      - name: Check and update formulas
+        run: |
+          # 遍历 Formula 和 Cask 目录中的 .rb 文件
+          for formula_file in ./Formulas/*.rb ./Casks/*.rb; do
+            # 检查文件是否存在，并检测文件类型（Cask 或 Formula）
+            if [[ -f "$formula_file" ]]; then
+              if [[ "$formula_file" == *"/Casks/"* ]]; then
+                file_type="cask"
+              elif [[ "$formula_file" == *"/Formulas/"* ]]; then
+                file_type="formula"
+              else
+                # 如果文件不在 Casks 或 Formulas 文件夹中，跳过
+                echo "Skipping unknown file location: $formula_file"
+                continue
+              fi
+            else
+              # 如果文件不存在，跳过
+              continue
+            fi
+
+            # 提取公式名称
+            formula_name=$(basename "$formula_file" .rb)
+            echo "Checking $formula_name..."
+
+            # 获取当前版本
+            current_version=$(grep -E 'version "[^"]+"' "$formula_file" | sed 's/.*"\([^"]*\)".*/\1/')
+            
+            # 查询最新版本
+            if [[ "$file_type" == "cask" ]]; then
+              # Cask 文件，使用 --cask 参数进行 livecheck
+              latest_version=$(brew livecheck --cask "$formula_name" --json | jq -r '.[0].version.latest')
+            elif [[ "$file_type" == "formula" ]]; then
+              # Formula 文件，直接使用 livecheck
+              latest_version=$(brew livecheck "$formula_name" --json | jq -r '.[0].version.latest')
+            fi
+
+            # 错误处理：检查版本是否为空
+            if [[ -z "$latest_version" || "$latest_version" == "null" || -z "$current_version" ]]; then
+              echo "Error: Unable to fetch version information for $formula_name. Latest version: $latest_version, Current version: $current_version. Skipping..."
+              continue
+            fi
+
+            echo "Latest version: $latest_version, Current version: $current_version"
+
+            # 如果最新版本与当前版本不同，进行更新
+            if [[ "$latest_version" != "$current_version" ]]; then
+              echo "Updating $formula_name to version $latest_version..."
+
+              # 下载最新版本的源码包，并计算 sha256
+              url=$(grep -E 'url ".*"' "$formula_file" | sed 's/.*"\(.*\)".*/\1/' | sed "s/$current_version/$latest_version/")
+              new_sha256=$(curl -L "$url" -o /tmp/source.tar.gz && shasum -a 256 /tmp/source.tar.gz | awk '{print $1}')
+
+              # 更新版本号和 sha256
+              sed -i "s/version \"$current_version\"/version \"$latest_version\"/" "$formula_file"
+              sed -i "s/sha256 \".*\"/sha256 \"$new_sha256\"/" "$formula_file"
+
+              echo "$formula_name updated: version $latest_version, sha256 $new_sha256"
+
+              # 添加变更
+              git add "$formula_file"
+            else
+              echo "$formula_name is up-to-date."
+            fi
+          done
+
+      - name: Commit changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 检查是否有更改
+          if git diff --cached --exit-code; then
+            echo "No updates found."
+          else
+            # 配置 Git
+            git config --global user.name "GitHub Actions"
+            git config --global user.email "actions@github.com"
+            git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+
+            # 提交变更
+            git commit -m "Update formulas to latest versions"
+
+            # 推送更改到远程仓库
+            git push origin HEAD:${{ github.ref_name }}
+          fi
