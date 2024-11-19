@@ -1,8 +1,8 @@
 # Adobe Downloader 项目：https://github.com/X1a0He/Adobe-Downloader
 
 cask "adobe-downloader" do
-    version "1.3.0"
-    sha256 "a3e2f450176bbe5f1ecc746bef0af533644a1f79be39dba32cd1e6c4ac2f37a2"
+    version "1.3.1"
+    sha256 "1b7ba0138639cb0aaa1de0138601cfaef9ed19dbc7f09fab4373a94cd8c3e466"
   
     url "https://github.com/X1a0He/Adobe-Downloader/releases/download/#{version}/Adobe.Downloader.dmg"
     name "Adobe Downloader"
